@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Admin User</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        background: #2a2a2a;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 255, 0, 0.2);
+        max-width: 400px;
+        width: 100%;
+      }
+      h1 {
+        color: #00ff00;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #00ff00;
+        font-weight: bold;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #444;
+        border-radius: 8px;
+        background: #1a1a1a;
+        color: #fff;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+      input:focus {
+        outline: none;
+        border-color: #00ff00;
+      }
+      button {
+        width: 100%;
+        padding: 15px;
+        background: #00ff00;
+        color: #000;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: background 0.3s;
+      }
+      button:hover {
+        background: #00cc00;
+      }
+      button:disabled {
+        background: #666;
+        cursor: not-allowed;
+      }
+      .message {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+      }
+      .success {
+        background: rgba(0, 255, 0, 0.2);
+        border: 2px solid #00ff00;
+        color: #00ff00;
+      }
+      .error {
+        background: rgba(255, 0, 0, 0.2);
+        border: 2px solid #ff0000;
+        color: #ff0000;
+      }
+      .info {
+        background: rgba(0, 150, 255, 0.2);
+        border: 2px solid #0096ff;
+        color: #0096ff;
+        margin-bottom: 20px;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+      .credentials {
+        background: #1a1a1a;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        border: 2px solid #00ff00;
+      }
+      .credentials p {
+        margin: 8px 0;
+      }
+      .note {
+        font-size: 12px;
+        color: #999;
+        text-align: center;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔐 Create Admin User</h1>
+
+      <div class="info">
+        <strong>ℹ️ Important:</strong> This will create a new admin account.
+        Remember these credentials to login to the admin dashboard.
+      </div>
+
+      <form id="adminForm">
+        <div class="form-group">
+          <label for="name">Admin Name</label>
+          <input type="text" id="name" value="Admin" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" value="admin@musclehub.com" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" value="admin123" required />
+        </div>
+
+        <button type="submit" id="submitBtn">Create Admin Account</button>
+      </form>
+
+      <div id="message"></div>
+
+      <p class="note">
+        ⚠️ For security, delete this file after creating your admin account.
+      </p>
+    </div>
+
+    <script>
+      const form = document.getElementById("adminForm");
+      const messageDiv = document.getElementById("message");
+      const submitBtn = document.getElementById("submitBtn");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById("name").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Creating...";
+        messageDiv.innerHTML = "";
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/auth/create-admin",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ name, email, password }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok) {
+            messageDiv.innerHTML = `
+                        <div class="message success">
+                            <p>✅ Admin account created successfully!</p>
+                            <div class="credentials">
+                                <p><strong>Email:</strong> ${email}</p>
+                                <p><strong>Password:</strong> ${password}</p>
+                                <p><strong>Role:</strong> Admin</p>
+                            </div>
+                            <p style="margin-top: 15px;">You can now login at:</p>
+                            <p><a href="http://localhost:3000/login" style="color: #00ff00;">http://localhost:3000/login</a></p>
+                        </div>
+                    `;
+            form.reset();
+          } else {
+            messageDiv.innerHTML = `
+                        <div class="message error">
+                            ❌ ${
+                              data.message || "Failed to create admin account"
+                            }
+                        </div>
+                    `;
+          }
+        } catch (error) {
+          messageDiv.innerHTML = `
+                    <div class="message error">
+                        ❌ Error: ${error.message}<br>
+                        Make sure your backend server is running on port 5000
+                    </div>
+                `;
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Create Admin Account";
+        }
+      });
+    </script>
+  </body>
+</html>
