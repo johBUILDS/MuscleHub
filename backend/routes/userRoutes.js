@@ -22,12 +22,19 @@ router.get("/profile", authMiddleware, async (req, res) => {
 // Update user profile
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
+    console.log('📝 Profile update request received');
+    console.log('👤 User ID:', req.user.id);
+    console.log('📦 Request body:', req.body);
+    
     const { name, email, phone, dob, goal, avatar } = req.body;
     const user = await User.findById(req.user.id);
     
     if (!user) {
+      console.log('❌ User not found');
       return res.status(404).json({ message: "User not found" });
     }
+
+    console.log('📊 Current user data:', { name: user.name, email: user.email, phone: user.phone, dob: user.dob, goal: user.goal });
 
     user.name = name || user.name;
     user.email = email || user.email;
@@ -36,14 +43,21 @@ router.put("/profile", authMiddleware, async (req, res) => {
     user.goal = goal || user.goal;
     user.avatar = avatar || user.avatar;
 
+    console.log('💾 Saving updated user data:', { name: user.name, email: user.email, phone: user.phone, dob: user.dob, goal: user.goal });
+
     await user.save();
     
     // Return user without password
     const updatedUser = await User.findById(req.user.id).select('-password');
+    
+    console.log('✅ Profile updated successfully');
+    console.log('📤 Sending response:', updatedUser);
+    
     res.json(updatedUser);
   } catch (err) {
-    console.error("Error updating profile:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Error updating profile:", err);
+    console.error("❌ Error stack:", err.stack);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 });
 
@@ -62,6 +76,17 @@ router.get("/leaderboard", authMiddleware, async (req, res) => {
   }
 });
 
+// Get all users (for name validation during signup)
+router.get("/", async (req, res) => {
+  try {
+    const users = await User.find({}).select('name email');
+    res.json(users);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // Save BMI data to user profile
 router.post("/bmi", authMiddleware, async (req, res) => {
   try {
@@ -72,9 +97,19 @@ router.post("/bmi", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const today = new Date().toLocaleDateString();
+
+    // Ensure one entry per day
+    if (user.bmiHistory && user.bmiHistory.length > 0) {
+      const latest = user.bmiHistory[0];
+      if (latest && latest.date === today) {
+        return res.status(400).json({ success: false, message: 'BMI already recorded for today' });
+      }
+    }
+
     const bmiEntry = {
       id: Date.now(),
-      date: new Date().toLocaleDateString(),
+      date: today,
       time: new Date().toLocaleTimeString(),
       height,
       weight,
@@ -103,3 +138,49 @@ router.post("/bmi", authMiddleware, async (req, res) => {
 });
 
 export default router;
+
+// ADMIN ROUTES FOR BMI MANAGEMENT
+// Delete a specific BMI entry for a user (admin only)
+router.delete("/bmi/:userId/:entryId", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const { userId, entryId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const before = user.bmiHistory?.length || 0;
+    user.bmiHistory = (user.bmiHistory || []).filter(e => String(e.id) !== String(entryId));
+    const after = user.bmiHistory?.length || 0;
+
+    await user.save();
+
+    return res.json({ success: true, removed: before - after, bmiHistory: user.bmiHistory });
+  } catch (err) {
+    console.error('Error deleting BMI entry:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Clear all BMI history for a user (admin only)
+router.delete("/bmi/:userId", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.bmiHistory = [];
+    await user.save();
+
+    return res.json({ success: true, bmiHistory: [] });
+  } catch (err) {
+    console.error('Error clearing BMI history:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});

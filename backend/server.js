@@ -48,6 +48,7 @@ import userRoutes from "./routes/userRoutes.js";
 app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/users", userRoutes); // Add this for the signup name validation
 
 
 

@@ -25,6 +25,15 @@ const userSchema = new mongoose.Schema({
     enum: ["admin", "member", "client"], // add valid role names
     default: "member", // default for normal users
   },
+  
+  // Two-Factor Authentication fields
+  verificationCode: { type: String },
+  verificationCodeExpires: { type: Date },
+  isVerified: { type: Boolean, default: false },
+  
+  // Password Reset fields
+  resetPasswordCode: { type: String },
+  resetPasswordExpires: { type: Date },
 });
 
 const User = mongoose.model("User", userSchema);

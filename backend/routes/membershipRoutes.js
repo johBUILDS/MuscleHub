@@ -46,10 +46,10 @@ router.post("/activate", async (req, res) => {
       userId, 
       status: 'active'
     });
-
+    // If an active membership exists, reject activation to prevent double-purchase
     if (existingPlan) {
-      existingPlan.status = 'expired';
-      await existingPlan.save();
+      console.log(`User ${userId} already has an active membership (planId=${existingPlan.planId}). Activation blocked.`);
+      return res.status(400).json({ success: false, message: 'User already has an active membership' });
     }
 
     // Create new membership
