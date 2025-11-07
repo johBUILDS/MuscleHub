@@ -19,7 +19,9 @@ router.get("/active/:name", async (req, res) => {
     if (membership) {
       return res.json({ 
         planId: membership.planId,
-        planName: membership.planName
+        planName: membership.planName,
+        startDate: membership.startDate,
+        status: membership.status
       });
     }
     
@@ -66,6 +68,38 @@ router.post("/activate", async (req, res) => {
   } catch (error) {
     console.error("Error activating membership:", error);
     res.status(500).json({ message: "Error activating membership" });
+  }
+});
+
+// ✅ ADMIN: Membership summary grouped by user
+router.get("/admin/summary", async (req, res) => {
+  try {
+    // Fetch all memberships and group by userId
+    const memberships = await Membership.find({}).sort({ startDate: -1 }).lean();
+    const summary = {};
+    for (const m of memberships) {
+      if (!summary[m.userId]) {
+        summary[m.userId] = { active: null, history: [] };
+      }
+      if (m.status === 'active' && !summary[m.userId].active) {
+        summary[m.userId].active = {
+          planId: m.planId,
+          planName: m.planName,
+          startDate: m.startDate,
+          status: m.status
+        };
+      }
+      summary[m.userId].history.push({
+        planId: m.planId,
+        planName: m.planName,
+        startDate: m.startDate,
+        status: m.status
+      });
+    }
+    res.json(summary);
+  } catch (error) {
+    console.error("Error building membership summary:", error);
+    res.status(500).json({ message: "Failed to fetch membership summary" });
   }
 });
 

@@ -4,6 +4,11 @@ import dotenv from "dotenv";
 import cors from "cors";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import membershipRoutes from "./routes/membershipRoutes.js";
+import authRoutes from "./routes/auth.js";
+import userRoutes from "./routes/userRoutes.js";
+import planRoutes from "./routes/planRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
+import Plan from "./models/Plan.js";
 
 
 dotenv.config();
@@ -34,7 +39,43 @@ app.use("/api/membership", membershipRoutes);
 
 //  CONNECT TO MONGODB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected successfully"))
+  .then(async () => {
+    console.log("✅ MongoDB connected successfully");
+    try {
+      const planCount = await Plan.countDocuments();
+      if (planCount === 0) {
+        await Plan.insertMany([
+          { id: 1, name: "Day Pass", price: 129, duration: "day", features: [
+            "Single-day access to one club",
+            "Perfect for trying out a gym"
+          ] },
+          { id: 2, name: "1 Month (Upfront)", price: 1249, duration: "month", features: [
+            "One-time payment",
+            "No lock-in contract"
+          ] },
+          { id: 3, name: "1 Month (Autodebit)", price: 1149, duration: "month", features: [
+            "Convenient monthly billing",
+            "Cancel or pause anytime"
+          ] },
+          { id: 4, name: "3 Months", price: 3249, duration: "3 months", features: [
+            "Total: ₱3,249",
+            "Good value & flexibility"
+          ] },
+          { id: 5, name: "6 Months", price: 5994, duration: "6 months", features: [
+            "Total: ₱5,994",
+            "Popular mid-term option"
+          ] },
+          { id: 6, name: "12 Months", price: 11388, duration: "12 months", features: [
+            "Total: ₱11,388",
+            "Best value for Plus Tier"
+          ] },
+        ]);
+        console.log("🌱 Seeded default plans into database");
+      }
+    } catch (seedErr) {
+      console.error("⚠️ Failed to seed default plans:", seedErr);
+    }
+  })
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 //  TEST ROUTE (you can visit http://localhost:5000/)
@@ -43,12 +84,12 @@ app.get("/", (req, res) => {
 });
 
 // ADD YOUR ROUTES BELOW
-import authRoutes from "./routes/auth.js";
-import userRoutes from "./routes/userRoutes.js";
 app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/users", userRoutes); // Add this for the signup name validation
+app.use("/api/plans", planRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 
 

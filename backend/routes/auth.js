@@ -66,6 +66,37 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    // 🔓 Testing bypass: Skip verification for the admin testing account
+    if (user.email === "admin@musclehub.com") {
+      console.log("⚠️ Bypassing verification for testing admin:", user.email);
+
+      const tokenPayload = { id: user._id.toString(), role: user.role };
+      const token = jwt.sign(
+        tokenPayload,
+        process.env.JWT_SECRET || "secretkey",
+        { expiresIn: "24h" }
+      );
+
+      const userData = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role || "member",
+        phone: user.phone,
+        dob: user.dob,
+        goal: user.goal || "No goal set",
+        avatar: user.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=2662&auto-format&fit=crop'
+      };
+
+      return res.json({
+        message: "Login successful",
+        token,
+        role: user.role || "member",
+        user: userData,
+        requiresVerification: false
+      });
+    }
+
     // Generate verification code
     const verificationCode = generateVerificationCode();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
